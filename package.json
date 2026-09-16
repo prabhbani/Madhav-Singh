@@ -1,0 +1,18 @@
+{
+  "name": "land-acquisition-predictive-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Land acquisition delay prediction and early warning platform",
+  "scripts": {
+    "test": "npm run test:unit && npm run test:ml",
+    "test:unit": "npm --prefix backend run test:unit",
+    "test:integration": "npm --prefix backend run test:integration",
+    "test:e2e": "npm --prefix frontend run test:e2e",
+    "test:ml": "cd ml && PYTHONPATH=tests python3 -m pytest tests -q",
+    "test:ml:stdlib": "cd ml && PYTHONPATH=tests python3 -m unittest discover -s tests -p \"test_*.py\"",
+    "test:all": "npm run test:unit && npm run test:ml && npm run test:integration && npm run test:e2e",
+    "typecheck": "npm --prefix backend run typecheck && npm --prefix frontend run typecheck",
+    "audit": "npm --prefix backend audit && npm --prefix frontend audit",
+    "verify": "npm run typecheck && npm run audit && npm run test"
+  }
+}
