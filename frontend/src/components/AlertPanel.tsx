@@ -1,0 +1,2 @@
+import { CircleAlert } from 'lucide-react';
+export function AlertPanel({ count, message }: { count: number; message: string }) { return <div className="action-card"><div className="action-title"><div className="action-icon"><CircleAlert size={17} /></div><div><h3>Intervention queue</h3><span>{count} alerts awaiting officer action</span></div></div><p className="association-note">{message}</p></div>; }

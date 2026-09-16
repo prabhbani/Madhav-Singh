@@ -1,0 +1,4 @@
+{
+  "catboost": "not installed; optional candidate was not run",
+  "xgboost": "not installed; optional boosted candidate was not run"
+}

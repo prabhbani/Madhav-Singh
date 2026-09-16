@@ -1,0 +1,156 @@
+{
+  "method": "permutation_importance",
+  "model": "logistic_regression",
+  "factors": [
+    {
+      "feature": "acquisition_complexity_score",
+      "mean_importance": 0.03788902,
+      "importance_std": 0.00258963,
+      "rank": 1
+    },
+    {
+      "feature": "affected_landowner_count",
+      "mean_importance": 0.01430829,
+      "importance_std": 0.00085474,
+      "rank": 2
+    },
+    {
+      "feature": "unresolved_record_count",
+      "mean_importance": 0.01318695,
+      "importance_std": 0.0008336,
+      "rank": 3
+    },
+    {
+      "feature": "missing_document_count",
+      "mean_importance": 0.01099918,
+      "importance_std": 0.00068105,
+      "rank": 4
+    },
+    {
+      "feature": "required_document_count",
+      "mean_importance": 0.00773994,
+      "importance_std": 0.000658,
+      "rank": 5
+    },
+    {
+      "feature": "milestone_slippage_count",
+      "mean_importance": 0.00654426,
+      "importance_std": 0.0007684,
+      "rank": 6
+    },
+    {
+      "feature": "parcel_count",
+      "mean_importance": 0.00545798,
+      "importance_std": 0.00065601,
+      "rank": 7
+    },
+    {
+      "feature": "legal_dispute_flag",
+      "mean_importance": 0.00240019,
+      "importance_std": 0.00070901,
+      "rank": 8
+    },
+    {
+      "feature": "days_in_current_stage",
+      "mean_importance": 0.00194239,
+      "importance_std": 0.00039769,
+      "rank": 9
+    },
+    {
+      "feature": "project_size_area",
+      "mean_importance": 0.00193572,
+      "importance_std": 0.00051313,
+      "rank": 10
+    },
+    {
+      "feature": "document_verification_pending_count",
+      "mean_importance": 0.00160835,
+      "importance_std": 0.00038566,
+      "rank": 11
+    },
+    {
+      "feature": "district",
+      "mean_importance": 0.00118184,
+      "importance_std": 0.00034443,
+      "rank": 12
+    },
+    {
+      "feature": "stay_order_flag",
+      "mean_importance": 0.00106272,
+      "importance_std": 0.00029119,
+      "rank": 13
+    },
+    {
+      "feature": "approved_compensation_amount",
+      "mean_importance": 0.00083101,
+      "importance_std": 0.00054029,
+      "rank": 14
+    },
+    {
+      "feature": "ownership_complexity_score",
+      "mean_importance": 0.00058676,
+      "importance_std": 0.00026836,
+      "rank": 15
+    },
+    {
+      "feature": "historical_district_delay_rate",
+      "mean_importance": 0.00058618,
+      "importance_std": 0.00027834,
+      "rank": 16
+    },
+    {
+      "feature": "historical_department_delay_rate",
+      "mean_importance": 0.00055573,
+      "importance_std": 0.00031478,
+      "rank": 17
+    },
+    {
+      "feature": "approval_stage_count",
+      "mean_importance": 0.00054888,
+      "importance_std": 0.00019605,
+      "rank": 18
+    },
+    {
+      "feature": "snapshot_year",
+      "mean_importance": 0.00034064,
+      "importance_std": 0.00017155,
+      "rank": 19
+    },
+    {
+      "feature": "department",
+      "mean_importance": 0.00031988,
+      "importance_std": 0.00026919,
+      "rank": 20
+    },
+    {
+      "feature": "days_since_last_update",
+      "mean_importance": 0.0003027,
+      "importance_std": 0.00018283,
+      "rank": 21
+    },
+    {
+      "feature": "pending_approval_count",
+      "mean_importance": 0.00029569,
+      "importance_std": 0.00010602,
+      "rank": 22
+    },
+    {
+      "feature": "snapshot_month",
+      "mean_importance": 0.00026105,
+      "importance_std": 8.808e-05,
+      "rank": 23
+    },
+    {
+      "feature": "payment_processing_days",
+      "mean_importance": 0.00017771,
+      "importance_std": 0.00013851,
+      "rank": 24
+    },
+    {
+      "feature": "land_use_category",
+      "mean_importance": 0.00012925,
+      "importance_std": 0.00016923,
+      "rank": 25
+    }
+  ]
+}

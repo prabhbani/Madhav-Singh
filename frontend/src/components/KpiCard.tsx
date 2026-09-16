@@ -1,0 +1,2 @@
+import type { LucideIcon } from 'lucide-react';
+export function KpiCard({ label, value, note, tone, icon: Icon }: { label: string; value: string; note: string; tone: string; icon: LucideIcon }) { return <div className="stat-card"><div className="stat-top"><span className="stat-label">{label}</span><span className="stat-icon" style={{ color: tone, background: `${tone}14` }}><Icon size={17} /></span></div><strong>{value}</strong><span className="stat-note">{note}</span></div>; }

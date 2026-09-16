@@ -1,0 +1,2 @@
+import { Link } from 'react-router-dom';
+export function RegistryPage() { return <div className="page-wrap"><div className="page-heading"><div><div className="eyebrow">PROJECT REGISTRY</div><h1>Project registry</h1><p>Use the executive dashboard to filter and open project records.</p></div><Link className="outline-button" to="/">Return to overview</Link></div><div className="empty-state"><h2>Registry workspace</h2><p>Detailed registry workflows are connected to the same typed project service as the dashboard.</p></div></div>; }

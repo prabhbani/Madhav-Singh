@@ -1,0 +1,1 @@
+export function SkeletonLoader() { return <div className="skeleton-grid" aria-label="Loading dashboard"><div className="skeleton skeleton-wide" /><div className="skeleton" /><div className="skeleton" /><div className="skeleton" /></div>; }

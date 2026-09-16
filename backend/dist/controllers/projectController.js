@@ -1,0 +1,10 @@
+import { projectService } from '../services/projectService.js';
+import { currentScope } from '../middlewares/authorize.js';
+export const list = async (request, response) => response.json(await projectService.list(currentScope(request), request.query));
+export const get = async (request, response) => response.json(await projectService.get(String(request.params.id)));
+export const create = async (request, response) => response.status(201).json(await projectService.create(request.body, request.user?.id));
+export const update = async (request, response) => response.json(await projectService.update(String(request.params.id), request.body));
+export const remove = async (request, response) => response.json(await projectService.remove(String(request.params.id)));
+export const milestones = async (request, response) => response.json(await projectService.milestones(String(request.params.id)));
+export const createMilestone = async (request, response) => response.status(201).json(await projectService.createMilestone(String(request.params.id), request.body));
+export const updateMilestone = async (request, response) => response.json(await projectService.updateMilestone(String(request.params.id), request.body));

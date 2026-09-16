@@ -1,0 +1,3 @@
+import type { Project } from '../types/project';
+import { RiskBadge } from './RiskBadge';
+export function PredictionCard({ project }: { project: Project }) { return <div className="detail-kpis" data-demo="prediction-card"><div data-demo="prediction-probability"><span>Delay probability</span><strong className={project.probability >= .5 ? 'danger-text' : 'good-text'}>{Math.round(project.probability * 100)}%</strong></div><div data-demo="prediction-delay"><span>Expected delay</span><strong>{project.expectedDelay} days</strong></div><div><span>Risk category</span><RiskBadge risk={project.risk} /></div></div>; }

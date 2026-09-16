@@ -1,0 +1,2 @@
+type Factor = { color: 'red' | 'yellow' | 'green'; title: string; detail: string; value: string };
+export function RiskFactorList({ factors }: { factors: Factor[] }) { return <div className="factor-list" data-demo="risk-factors">{factors.map((factor) => <div className="factor" key={factor.title}><span className={`factor-signal ${factor.color}`} /><div><strong>{factor.title}</strong><small>{factor.detail}</small></div><b className={factor.color === 'green' ? 'good-text' : factor.color === 'yellow' ? 'warn-text' : 'danger-text'}>{factor.value}</b></div>)}</div>; }

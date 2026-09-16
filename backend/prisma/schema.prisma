@@ -1,0 +1,336 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Access roles. Scope breadth is defined in `src/authz/policy.ts`, not here.
+enum Role {
+  SUPER_ADMIN
+  STATE_ADMIN
+  DISTRICT_OFFICER
+  PROJECT_OFFICER
+  ANALYST
+  VIEWER
+}
+
+/// Outcome recorded on an audit row. Denials are audited as well as successes.
+enum AuditOutcome {
+  SUCCESS
+  DENIED
+  FAILED
+}
+
+enum ProjectStatus {
+  DRAFT
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  CANCELLED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  IN_PROGRESS
+  RESOLVED
+  DISMISSED
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  HIGH
+  CRITICAL
+}
+
+/// Every state transition an alert can record in its history.
+enum AlertEventType {
+  RAISED
+  OBSERVED
+  ESCALATED
+  DE_ESCALATED
+  ACKNOWLEDGED
+  IN_PROGRESS
+  RESOLVED
+  DISMISSED
+  REOPENED
+  SUPPRESSED
+}
+
+model User {
+  id                 String     @id @default(uuid()) @db.Uuid
+  email              String     @unique @db.VarChar(254)
+  passwordHash       String     @map("password_hash") @db.VarChar(255)
+  displayName        String     @map("display_name") @db.VarChar(180)
+  role               Role
+  /// Geographic scope. These hold the same values as projects.state and
+  /// projects.district, compared case-insensitively by the scope validator.
+  stateCode          String?    @map("state_code") @db.VarChar(120)
+  districtCode       String?    @map("district_code") @db.VarChar(120)
+  /// Department an officer is accountable for. Narrows a PROJECT_OFFICER's scope
+  /// and routes alerts to a named person.
+  department         String?    @db.VarChar(120)
+  active             Boolean    @default(true)
+  /// Brute-force controls. Counted per account so a distributed attack on one
+  /// account is limited even when each attempt comes from a different address.
+  failedLoginCount   Int        @default(0) @map("failed_login_count")
+  lockedUntil        DateTime?  @map("locked_until")
+  lastLoginAt        DateTime?  @map("last_login_at")
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
+  auditLogs          AuditLog[]
+  projects           Project[]  @relation("ProjectCreator")
+  alerts             Alert[]    @relation("AlertAssignee")
+  acknowledgedAlerts Alert[]    @relation("AlertAcknowledger")
+
+  @@map("users")
+}
+
+model Project {
+  id               String           @id @default(uuid()) @db.Uuid
+  projectCode      String           @unique @map("project_code") @db.VarChar(80)
+  name             String           @db.VarChar(240)
+  state            String           @db.VarChar(120)
+  district         String           @db.VarChar(120)
+  department       String           @db.VarChar(120)
+  projectType      String           @map("project_type") @db.VarChar(100)
+  priority         String           @default("MEDIUM") @db.VarChar(20)
+  plannedStartDate DateTime         @map("planned_start_date") @db.Date
+  targetDate       DateTime         @map("target_date") @db.Date
+  status           ProjectStatus    @default(DRAFT)
+  dataOrigin       String           @default("USER_ENTERED") @map("data_origin") @db.VarChar(30)
+  createdById      String?          @map("created_by_id") @db.Uuid
+  createdBy        User?            @relation("ProjectCreator", fields: [createdById], references: [id])
+  milestones       Milestone[]
+  documents        Document[]
+  predictions      Prediction[]
+  alerts           Alert[]
+  recommendations  Recommendation[]
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  @@index([district, status])
+  @@index([department, status])
+  @@map("projects")
+}
+
+model Milestone {
+  id          String          @id @default(uuid()) @db.Uuid
+  projectId   String          @map("project_id") @db.Uuid
+  name        String          @db.VarChar(200)
+  status      MilestoneStatus @default(PENDING)
+  plannedAt   DateTime        @map("planned_at")
+  completedAt DateTime?       @map("completed_at")
+  ownerDept   String?         @map("owner_department") @db.VarChar(120)
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  @@index([projectId, status, plannedAt])
+  @@map("milestones")
+}
+
+model Document {
+  id                String    @id @default(uuid()) @db.Uuid
+  projectId         String    @map("project_id") @db.Uuid
+  documentType      String    @map("document_type") @db.VarChar(120)
+  documentReference String?   @map("document_reference") @db.VarChar(160)
+  status            String    @default("SUBMITTED") @db.VarChar(30)
+  storageKey        String?   @map("storage_key") @db.VarChar(500)
+  checksumSha256    String?   @map("checksum_sha256") @db.Char(64)
+  submittedAt       DateTime  @default(now()) @map("submitted_at")
+  verifiedAt        DateTime? @map("verified_at")
+  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@index([projectId, status])
+  @@map("documents")
+}
+
+model Prediction {
+  id                String    @id @default(uuid()) @db.Uuid
+  projectId         String    @map("project_id") @db.Uuid
+  modelVersion      String    @map("model_version") @db.VarChar(120)
+  predictedAt       DateTime  @default(now()) @map("predicted_at")
+  horizonDays       Int       @map("horizon_days")
+  delayProbability  Decimal   @map("delay_probability") @db.Decimal(6, 5)
+  expectedDelayDays Decimal?  @map("expected_delay_days") @db.Decimal(12, 2)
+  riskLevel         RiskLevel @map("risk_level")
+  confidenceScore   Decimal?  @map("confidence_score") @db.Decimal(6, 5)
+  confidenceBand    String?   @map("confidence_band") @db.VarChar(20)
+  inputSnapshot     Json      @map("input_snapshot")
+  explanation       Json      @default("{}")
+  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  @@index([projectId, predictedAt])
+  @@map("predictions")
+}
+
+model Alert {
+  id        String        @id @default(uuid()) @db.Uuid
+  projectId String        @map("project_id") @db.Uuid
+  /// Detector code, e.g. MILESTONE_OVERDUE. One live alert per project and type.
+  type      String        @db.VarChar(100)
+  severity  AlertSeverity
+  status    AlertStatus   @default(OPEN)
+  /// Officer-facing description of what was observed.
+  message   String
+
+  // --- Early warning system fields ---
+  /// The condition expression that fired, with its measured value and threshold.
+  trigger               String
+  /// Action mapped from the detector's evidence, never free-form text.
+  recommendedAction     String
+  responsibleDepartment String    @map("responsible_department") @db.VarChar(160)
+  /// How the responsible officer or department was resolved.
+  responsibilityBasis   String    @map("responsibility_basis")
+  /// Measured values behind the trigger, for audit and for deduplication.
+  evidence              Json      @default("{}")
+  /// Quantized condition state. An unchanged hash means an unchanged condition.
+  conditionHash         String    @map("condition_hash") @db.VarChar(16)
+  /// Times the condition has been observed since the alert was raised.
+  occurrenceCount       Int       @default(1) @map("occurrence_count")
+  firstTriggeredAt      DateTime  @default(now()) @map("first_triggered_at")
+  lastObservedAt        DateTime  @default(now()) @map("last_observed_at")
+  /// Notifications are held until this time unless the severity escalates.
+  cooldownUntil         DateTime? @map("cooldown_until")
+  lastNotifiedAt        DateTime? @map("last_notified_at")
+  policyVersion         String    @map("policy_version") @db.VarChar(80)
+  detectorVersion       String    @map("detector_version") @db.VarChar(80)
+  modelVersion          String?   @map("model_version") @db.VarChar(120)
+  predictionId          String?   @map("prediction_id") @db.Uuid
+
+  assignedToId        String? @map("assigned_to_id") @db.Uuid
+  acknowledgedById    String? @map("acknowledged_by_id") @db.Uuid
+  acknowledgementNote String? @map("acknowledgement_note")
+  resolutionReason    String? @map("resolution_reason") @db.VarChar(80)
+
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedTo     User?        @relation("AlertAssignee", fields: [assignedToId], references: [id])
+  acknowledgedBy User?        @relation("AlertAcknowledger", fields: [acknowledgedById], references: [id])
+  events         AlertEvent[]
+
+  triggeredAt    DateTime  @default(now()) @map("triggered_at")
+  acknowledgedAt DateTime? @map("acknowledged_at")
+  resolvedAt     DateTime? @map("resolved_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@unique([projectId, type])
+  @@index([status, severity, triggeredAt])
+  @@index([projectId, status])
+  @@index([assignedToId, status])
+  @@map("alerts")
+}
+
+/// Immutable history of every alert state change. Rows are never updated.
+model AlertEvent {
+  id             BigInt         @id @default(autoincrement())
+  alertId        String         @map("alert_id") @db.Uuid
+  eventType      AlertEventType @map("event_type")
+  severityBefore AlertSeverity? @map("severity_before")
+  severityAfter  AlertSeverity? @map("severity_after")
+  statusBefore   AlertStatus?   @map("status_before")
+  statusAfter    AlertStatus?   @map("status_after")
+  /// Why the transition happened: threshold crossed, cooldown, officer decision.
+  reason         String
+  /// Measured values at the moment of the transition.
+  evidence       Json           @default("{}")
+  actorId        String?        @map("actor_id") @db.Uuid
+  note           String?
+  occurredAt     DateTime       @default(now()) @map("occurred_at")
+  alert          Alert          @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@index([alertId, occurredAt])
+  @@index([eventType, occurredAt])
+  @@map("alert_events")
+}
+
+model Recommendation {
+  id                    String    @id @default(uuid()) @db.Uuid
+  projectId             String    @map("project_id") @db.Uuid
+  type                  String    @db.VarChar(100)
+  title                 String    @db.VarChar(240)
+  rationale             String
+  priority              String    @db.VarChar(20)
+  status                String    @default("OPEN") @db.VarChar(40)
+  dueAt                 DateTime? @map("due_at")
+  // Recommendation-engine fields. Every value below is derived from measured
+  // evidence and the versioned policy, never from free-form generated text.
+  evidenceCode          String    @map("evidence_code") @db.VarChar(80)
+  rank                  Int       @default(1)
+  rankingScore          Decimal   @default(0) @map("ranking_score") @db.Decimal(6, 5)
+  priorityBasis         String    @default("RANKING_SCORE") @map("priority_basis") @db.VarChar(30)
+  responsibleDepartment String    @map("responsible_department") @db.VarChar(160)
+  expectedImpact        String    @map("expected_impact")
+  relatedFactorCode     String?   @map("related_factor_code") @db.VarChar(120)
+  source                String    @default("ML_ASSISTED") @db.VarChar(20)
+  policyVersion         String    @map("policy_version") @db.VarChar(80)
+  catalogVersion        String    @map("catalog_version") @db.VarChar(80)
+  modelVersion          String?   @map("model_version") @db.VarChar(120)
+  predictionId          String?   @map("prediction_id") @db.Uuid
+  /// Full engine envelope: evidence, score breakdown, traceability, limitations.
+  detail                Json      @default("{}")
+  project               Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@unique([projectId, evidenceCode])
+  @@index([projectId, status, dueAt])
+  @@index([status, priority, dueAt])
+  @@map("recommendations")
+}
+
+model AuditLog {
+  id         BigInt       @id @default(autoincrement())
+  /// Who acted. Null only for an unauthenticated attempt, such as a failed login.
+  actorId    String?      @map("actor_id") @db.Uuid
+  actorEmail String?      @map("actor_email") @db.VarChar(254)
+  actorRole  Role?        @map("actor_role")
+  /// Verb, e.g. PROJECT_UPDATE, USER_DEACTIVATE, AUTH_LOGIN_FAILURE.
+  action     String       @db.VarChar(60)
+  /// Logical resource: projects, cases, documents, predictions, analytics,
+  /// alerts, users, auditLogs.
+  resource   String       @db.VarChar(40)
+  /// Physical table, kept separate from the logical resource name.
+  tableName  String       @map("table_name") @db.VarChar(120)
+  resourceId String?      @map("record_id") @db.Uuid
+  requestId  String?      @map("request_id") @db.Uuid
+  route      String?      @db.VarChar(200)
+  /// Recorded only for actions the audit policy marks as IP-relevant.
+  ipAddress  String?      @map("ip_address") @db.VarChar(45)
+  outcome    AuditOutcome @default(SUCCESS)
+  /// Why a request was denied, or why an action failed.
+  reason     String?
+  /// Redacted snapshots. Secrets never reach these columns.
+  oldValues  Json?        @map("old_values")
+  newValues  Json?        @map("new_values")
+  occurredAt DateTime     @default(now()) @map("occurred_at")
+  actor      User?        @relation(fields: [actorId], references: [id])
+
+  @@index([tableName, resourceId, occurredAt])
+  @@index([actorId, occurredAt])
+  @@index([resource, action, occurredAt])
+  @@index([outcome, occurredAt])
+  @@map("audit_logs")
+}
